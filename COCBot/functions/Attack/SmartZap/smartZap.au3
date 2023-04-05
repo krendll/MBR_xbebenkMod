@@ -568,7 +568,6 @@ Func smartZap($minDE = -1)
 					Local $aEasyPrey = easyPreySearch()
 					If UBound($aEasyPrey) = 0 Then
 						SetLog("No easy targets found!", $COLOR_INFO)
-						Return $performedZap
 					Else
 						; Get the number of targets
 						Local $iTargetCount = 0
