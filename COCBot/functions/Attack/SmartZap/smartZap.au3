@@ -545,76 +545,95 @@ Func smartZap($minDE = -1)
 
 	If $g_bSmartZapFTW Then
 		SetLog("====== SmartZap/NoobZap FTW Mode ======", $COLOR_INFO)
-	Else
-		Return $performedZap
-	EndIf
-
-	If _CheckPixel($aWonOneStar, True) Then
-		SetLog("One Star already reached.", $COLOR_INFO)
-		Return $performedZap
-	EndIf
-
-	If $aSpells[0][4] + $aSpells[1][4] = 0 Then
-		SetLog("No lightning spells left, time to go home!", $COLOR_ERROR)
-		Return $performedZap
-	Else
-		If $aSpells[0][4] > 0 Then
-			SetLog(" - Number of " & GetTroopName($aSpells[0][1], 2) & " (Lvl " & $aSpells[0][3] & "): " & Number($aSpells[0][4]), $COLOR_INFO)
+		If _CheckPixel($aWonOneStar, True) Then
+			SetLog("One Star already reached.", $COLOR_INFO)
+		Else
+			If $aSpells[0][4] + $aSpells[1][4] = 0 Then
+				SetLog("No lightning spells left, time to go home!", $COLOR_ERROR)
+			Else
+				If $aSpells[0][4] > 0 Then
+					SetLog(" - Number of " & GetTroopName($aSpells[0][1], 2) & " (Lvl " & $aSpells[0][3] & "): " & Number($aSpells[0][4]), $COLOR_INFO)
+				EndIf
+				If $aSpells[1][4] > 0 Then
+					SetLog(" - Number of Donated " & GetTroopName($aSpells[1][1], 2) & " (Lvl " & $aSpells[1][3] & "): " & Number($aSpells[1][4]), $COLOR_INFO)
+				EndIf
+				Local $iPercentageNeeded = 50 - getOcrOverAllDamage(780, 529)
+				If $iPercentageNeeded < 1 Then 
+					SetLog("Percentage needed is less than 1, cancelling!", $COLOR_ERROR)
+				ElseIf $iPercentageNeeded > 10 Then
+					SetLog("Percentage needed: " & $iPercentageNeeded & "! Too much, skipping!", $COLOR_INFO)
+				Else
+					SetLog("Percentage needed: " & $iPercentageNeeded, $COLOR_INFO)
+					_ArrayDelete($aSpells, 2)
+					Local $aEasyPrey = easyPreySearch()
+					If UBound($aEasyPrey) = 0 Then
+						SetLog("No easy targets found!", $COLOR_INFO)
+						Return $performedZap
+					Else
+						; Get the number of targets
+						Local $iTargetCount = 0
+						For $iTargets = 0 To UBound($aEasyPrey) - 1
+							$iTargetCount += $aEasyPrey[$iTargets][2]
+							If $g_bDebugSmartZap = True Then
+								SetLog($iTargets + 1 & ". target: x=" & $aEasyPrey[$iTargets][0] & ",y=" & $aEasyPrey[$iTargets][1] & ",w=" & $aEasyPrey[$iTargets][2], $COLOR_DEBUG)
+							EndIf
+						Next
+						SetLog("Count of easy targets: " & $iTargetCount, $COLOR_INFO)
+						; Get the number of zappable targets
+						$iTargetCount = 0
+						For $iTargets = 0 To _Min(Number(UBound($aEasyPrey) - 1),Number($aSpells[0][4] + $aSpells[1][4]) - 1)
+							$iTargetCount += $aEasyPrey[$iTargets][2]
+						Next
+						SetLog("Easy targets, we can zap: " & $iTargetCount, $COLOR_INFO)
+						If $iPercentageNeeded > $iTargetCount Then
+							SetLog("No chance to win!", $COLOR_INFO)
+							SetLog("Needed percentage (" & $iPercentageNeeded & ") is greater than targets, we can zap (" & $iTargetCount & ")!", $COLOR_INFO)
+						Else
+							Local $Spellused = $eLSpell
+							While IsAttackPage() And $aSpells[0][4] + $aSpells[1][4] > 0 And UBound($aEasyPrey) > 0 And Not _CheckPixel($aWonOneStar, True)
+								$Spellused = zapBuilding($aSpells, $aEasyPrey[0][0] + 5, $aEasyPrey[0][1] + 5)
+								_ArrayDelete($aEasyPrey, 0)
+							Wend
+							If _CheckPixel($aWonOneStar, True) Then
+								SetLog("Hooray, One Star reached, we have won!", $COLOR_INFO)
+							EndIf
+						EndIf
+					EndIf
+				EndIf
+			EndIf
 		EndIf
-		If $aSpells[1][4] > 0 Then
-			SetLog(" - Number of Donated " & GetTroopName($aSpells[1][1], 2) & " (Lvl " & $aSpells[1][3] & "): " & Number($aSpells[1][4]), $COLOR_INFO)
-		EndIf
 	EndIf
-
-	Local $iPercentageNeeded = 50 - getOcrOverAllDamage(780, 529)
-	If $iPercentageNeeded < 1 Then 
-		SetLog("Percentage needed is less than 1, cancelling!", $COLOR_ERROR)
-		Return $performedZap
-	ElseIf $iPercentageNeeded > 10 Then
-		SetLog("Percentage needed: " & $iPercentageNeeded & "! Too much, skipping!", $COLOR_INFO)
-		Return $performedZap
-	Else
-		SetLog("Percentage needed: " & $iPercentageNeeded, $COLOR_INFO)
-	EndIf
-
+	
+	; Zap Collectors
 	_ArrayDelete($aSpells, 2)
-	Local $aEasyPrey = easyPreySearch()
-	If UBound($aEasyPrey) = 0 Then
-		SetLog("No easy targets found!", $COLOR_INFO)
+	Local $aCollector = zapCollectorSearch()
+	If UBound($aCollector) = 0 Then
+		SetLog("No collectors found!", $COLOR_INFO)
 		Return $performedZap
 	Else
 		; Get the number of targets
 		Local $iTargetCount = 0
-		For $iTargets = 0 To UBound($aEasyPrey) - 1
-			$iTargetCount += $aEasyPrey[$iTargets][2]
+		For $iTargets = 0 To UBound($aCollector) - 1
+			$iTargetCount += $aCollector[$iTargets][2]
 			If $g_bDebugSmartZap = True Then
-				SetLog($iTargets + 1 & ". target: x=" & $aEasyPrey[$iTargets][0] & ",y=" & $aEasyPrey[$iTargets][1] & ",w=" & $aEasyPrey[$iTargets][2], $COLOR_DEBUG)
+				SetLog($iTargets + 1 & ". target: x=" & $aCollector[$iTargets][0] & ",y=" & $aCollector[$iTargets][1] & ",w=" & $aCollector[$iTargets][2], $COLOR_DEBUG)
 			EndIf
 		Next
-		SetLog("Count of easy targets: " & $iTargetCount, $COLOR_INFO)
+		SetLog("Count of collectors: " & $iTargetCount, $COLOR_INFO)
 		; Get the number of zappable targets
 		$iTargetCount = 0
-		For $iTargets = 0 To _Min(Number(UBound($aEasyPrey) - 1),Number($aSpells[0][4] + $aSpells[1][4]) - 1)
-			$iTargetCount += $aEasyPrey[$iTargets][2]
+		For $iTargets = 0 To _Min(Number(UBound($aCollector) - 1),Number($aSpells[0][4] + $aSpells[1][4]) - 1)
+			$iTargetCount += $aCollector[$iTargets][2]
 		Next
-		SetLog("Easy targets, we can zap: " & $iTargetCount, $COLOR_INFO)
-		If $iPercentageNeeded > $iTargetCount Then
-			SetLog("No chance to win!", $COLOR_INFO)
-			SetLog("Needed percentage (" & $iPercentageNeeded & ") is greater than targets, we can zap (" & $iTargetCount & ")!", $COLOR_INFO)
-			Return $performedZap
-		EndIf
 	EndIf
 
 	Local $Spellused = $eLSpell
-	While IsAttackPage() And $aSpells[0][4] + $aSpells[1][4] > 0 And UBound($aEasyPrey) > 0 And Not _CheckPixel($aWonOneStar, True)
-		$Spellused = zapBuilding($aSpells, $aEasyPrey[0][0] + 5, $aEasyPrey[0][1] + 5)
-		_ArrayDelete($aEasyPrey, 0)
+	While IsAttackPage() And $aSpells[0][4] + $aSpells[1][4] > 0 And UBound($aCollector) > 0 And Not _CheckPixel($aWonOneStar, True)
+		$Spellused = zapBuilding($aSpells, $aCollector[0][0] + 5, $aCollector[0][1] + 5)
+		_ArrayDelete($aCollector, 0)
 		If _Sleep(1000) Then Return
 	Wend
-
-	If _CheckPixel($aWonOneStar, True) Then
-		SetLog("Hooray, One Star reached, we have won!", $COLOR_INFO)
-	EndIf
+	
 	Return $performedZap
 EndFunc   ;==>smartZap
 
@@ -651,3 +670,100 @@ Func ReCheckDrillExist($x, $y)
 	EndIf
 	Return False
 EndFunc   ;==>ReCheckDrillExist
+
+Func zapCollectorSearch()
+	Local $aReturnResult[0][3]
+	Local $pixelerror = 10, $iMaxCombDist = 60
+
+	For $iLoop = 1 To 3 ; Search 3 times
+		If $iLoop > 1 Then ; with 5 sec pause inbetween, so whole search covers a time intervall of around 10 sec
+			If _Sleep(5000) Then Return
+		EndIf
+
+		;search mine
+		Local $aResult = multiMatches(@ScriptDir & "\imgxml\Storages\GoldMines", 0, "ECD", "ECD")
+		If $g_bDebugSmartZap = True Then
+			If UBound($aResult) = 2 Then
+				SetLog("1 target type found in " & $iLoop & ". searchround.", $COLOR_DEBUG)
+			Else
+				SetLog(UBound($aResult) - 1 & " target types found in " & $iLoop & ". searchround.", $COLOR_DEBUG)
+			EndIf
+		EndIf
+
+		For $iResult = 1 To UBound($aResult) - 1 ; Loop through all resultrows, skipping first row, which is searcharea, each matched img has its own row, if no resultrow, for is skipped
+			If _Sleep(10) Then Return
+			Local $aTemp[0][2]
+			_ArrayAdd($aTemp, $aResult[$iResult][5], 0, "|", @CRLF, $ARRAYFILL_FORCE_STRING) ; Copy Positionarray to temp array
+			_ArrayColInsert($aTemp, 2) ; Adding Weight Column
+			For $iRow = 0 To UBound($aTemp) - 1
+				$aTemp[$iRow][2] = 1 ; Setting Weight Column to 1
+			Next
+			_ArrayAdd($aReturnResult, $aTemp, 0, "|", @CRLF, $ARRAYFILL_FORCE_STRING) ; Adding temp array to return array
+		Next
+		
+		;search collector
+		Local $aResult = multiMatches(@ScriptDir & "\imgxml\Storages\Collectors", 0, "ECD", "ECD")
+		If $g_bDebugSmartZap = True Then
+			If UBound($aResult) = 2 Then
+				SetLog("1 target type found in " & $iLoop & ". searchround.", $COLOR_DEBUG)
+			Else
+				SetLog(UBound($aResult) - 1 & " target types found in " & $iLoop & ". searchround.", $COLOR_DEBUG)
+			EndIf
+		EndIf
+
+		For $iResult = 1 To UBound($aResult) - 1 ; Loop through all resultrows, skipping first row, which is searcharea, each matched img has its own row, if no resultrow, for is skipped
+			If _Sleep(10) Then Return
+			Local $aTemp[0][2]
+			_ArrayAdd($aTemp, $aResult[$iResult][5], 0, "|", @CRLF, $ARRAYFILL_FORCE_STRING) ; Copy Positionarray to temp array
+			_ArrayColInsert($aTemp, 2) ; Adding Weight Column
+			For $iRow = 0 To UBound($aTemp) - 1
+				$aTemp[$iRow][2] = 1 ; Setting Weight Column to 1
+			Next
+			_ArrayAdd($aReturnResult, $aTemp, 0, "|", @CRLF, $ARRAYFILL_FORCE_STRING) ; Adding temp array to return array
+		Next
+	Next
+
+	; Removing Duplicate Targets
+	Local $iResult = 0
+	While $iResult < UBound($aReturnResult)
+		If _Sleep(10) Then Return
+		Local $jResult = $iResult + 1
+		While $jResult < UBound($aReturnResult)
+			If Abs($aReturnResult[$iResult][0] - $aReturnResult[$jResult][0]) <= $pixelerror And Abs($aReturnResult[$iResult][1] - $aReturnResult[$jResult][1]) <= $pixelerror Then
+				If $g_bDebugSmartZap = True Then
+					SetLog("Found Duplicate Target: [" & $aReturnResult[$jResult][0] & "," & $aReturnResult[$jResult][1] & "]", $COLOR_DEBUG)
+				EndIf
+				_ArrayDelete($aReturnResult, $jResult)
+			Else
+				$jResult += 1
+			EndIf
+		WEnd
+		$iResult += 1
+	WEnd
+
+	; Consolidating Targets
+	Local $iResult = 0
+	While $iResult < UBound($aReturnResult)
+		If _Sleep(10) Then Return
+		Local $jResult = $iResult + 1
+		While $jResult < UBound($aReturnResult)
+			If Abs($aReturnResult[$iResult][0] - $aReturnResult[$jResult][0]) + Abs($aReturnResult[$iResult][1] - $aReturnResult[$jResult][1]) <= $iMaxCombDist Then
+				If $g_bDebugSmartZap = True Then
+					SetLog("Found Targets for consolidation: [" & $aReturnResult[$iResult][0] & "," & $aReturnResult[$iResult][1] & "," & $aReturnResult[$iResult][2] & "] & [" & $aReturnResult[$jResult][0] & "," & $aReturnResult[$jResult][1] & "," & $aReturnResult[$jResult][2] & "]", $COLOR_DEBUG)
+				EndIf
+				Local $iNewWeight = $aReturnResult[$iResult][2] + $aReturnResult[$jResult][2]
+				$aReturnResult[$iResult][0] = Ceiling(Number(($aReturnResult[$iResult][0] * $aReturnResult[$iResult][2] + $aReturnResult[$jResult][0] * $aReturnResult[$jResult][2]) / $iNewWeight))
+				$aReturnResult[$iResult][1] = Ceiling(Number(($aReturnResult[$iResult][1] * $aReturnResult[$iResult][2] + $aReturnResult[$jResult][1] * $aReturnResult[$jResult][2]) / $iNewWeight))
+				$aReturnResult[$iResult][2] = $iNewWeight
+				_ArrayDelete($aReturnResult, $jResult)
+				ContinueLoop 2
+			EndIf
+			$jResult += 1
+		WEnd
+		$iResult += 1
+	WEnd
+
+	If UBound($aReturnResult) > 1 Then _ArraySort($aReturnResult, 1, 0, 0, 2)
+
+	Return $aReturnResult
+EndFunc   ;==>zapCollectorSearch
