@@ -627,7 +627,7 @@ Func smartZap($minDE = -1)
 	EndIf
 
 	Local $Spellused = $eLSpell
-	While IsAttackPage() And $aSpells[0][4] + $aSpells[1][4] > 0 And UBound($aCollector) > 0 And Not _CheckPixel($aWonOneStar, True)
+	While IsAttackPage() And $aSpells[0][4] + $aSpells[1][4] > 0 And UBound($aCollector) > 0
 		$Spellused = zapBuilding($aSpells, $aCollector[0][0] + 5, $aCollector[0][1] + 5)
 		_ArrayDelete($aCollector, 0)
 		If _Sleep(1000) Then Return
