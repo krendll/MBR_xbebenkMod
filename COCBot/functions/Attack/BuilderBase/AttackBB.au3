@@ -46,9 +46,9 @@ Func DoAttackBB($g_iBBAttackCount = $g_iBBAttackCount)
 			EndIf
 			$g_iBBAttacked = True
 			$count += 1
-			If $count > 10 Then
+			If $count > 1000 Then
 				SetLog("Something maybe wrong", $COLOR_INFO)
-				SetLog("Force stop, attacked 10 times!", $COLOR_INFO)
+				SetLog("Force stop, attacked 1000 times!", $COLOR_INFO)
 				ExitLoop
 			EndIf
 		Wend
