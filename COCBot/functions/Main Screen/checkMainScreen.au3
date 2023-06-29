@@ -23,8 +23,10 @@ EndFunc   ;==>checkMainScreen
 Func _checkMainScreen($bSetLog = Default, $bBuilderBase = $g_bStayOnBuilderBase, $CalledFrom = "Default") ;Checks if in main screen
 
 	If $bSetLog = Default Then $bSetLog = True
+	Local $VillageType = "MainVillage"
+	If $bBuilderBase Then $VillageType = "BuilderBase"
 	If $bSetLog Then
-		SetLog("[" & $CalledFrom & "] Locate Main Screen", $COLOR_INFO)
+		SetLog("[" & $CalledFrom & "] Check " & $VillageType & " Main Screen", $COLOR_INFO)
 	EndIf
 	
 	If Not TestCapture() Then
@@ -43,23 +45,26 @@ Func _checkMainScreen($bSetLog = Default, $bBuilderBase = $g_bStayOnBuilderBase,
 	If $bBuilderBase Then $aPixelToCheck = $aIsOnBuilderBase
 	While True
 		$i += 1
+		If Not $g_bRunState Then Return
 		SetDebugLog("checkMainScreen : " & ($bBuilderBase ? "BuilderBase" : "MainVillage"))
 		$bLocated = _checkMainScreenImage($aPixelToCheck)
 		If Not $bLocated And GetAndroidProcessPID() = 0 Then StartAndroidCoC()
-		If $bLocated Then ExitLoop
+		
+		If $g_sAndroidEmulator = "Bluestacks5" Then NotifBarDropDownBS5()
 		
 		Local $sLoading = getOcrAndCapture("coc-Loading", 385, 580, 90, 25)
 		If $sLoading = "Loading" Then 
 			SetLog("Still on Loading Screen...", $COLOR_INFO)
 			_Sleep(5000)
 		EndIf
+		If $bLocated Then ExitLoop
 		
+		;mainscreen not located, proceed to check if there is obstacle covering screen
 		$bObstacleResult = checkObstacles($bBuilderBase)
 		SetDebugLog("CheckObstacles[" & $i & "] Result = " & $bObstacleResult, $COLOR_DEBUG)
-
+		
 		$bContinue = False
 		If Not $bObstacleResult Then
-			If $g_bMinorObstacle Then $g_bMinorObstacle = False
 			If $i > 8 Then $bContinue = True
 		Else
 			$g_bRestart = True
@@ -109,19 +114,23 @@ Func _checkMainScreenImage($aPixelToCheck)
 EndFunc
 
 Func checkChatTabPixel()
-	If _CheckPixel($aChatTab, True) Then
-		SetDebugLog("checkChatTabPixel: Found Chat Tab to close")
-		PureClickP($aChatTab, 1, 0, "#0136") ;Click Close chat tab
-		If _Sleep(2000) Then Return
+	Local $bRet = False
+	
+	If _ColorCheck(_GetPixelColor(19, 376, True), Hex(0xC85415, 6), 20, Default, "checkChatTabPixel") Then
+		If $g_bDebugSetLog Then SetLog("checkChatTabPixel: Found ChatTab", $COLOR_ACTION)
+		$bRet = True
+	Else
+		If _CheckPixel($aChatTab, True) Then
+			SetDebugLog("checkChatTabPixel: Found Chat Tab to close", $COLOR_ACTION)
+			PureClickP($aChatTab, 1, 0, "#0136") ;Clicks chat tab
+			If _Sleep(1000) Then Return
+			$bRet = True
+		Else
+			SetDebugLog("ChatTabPixel not found", $COLOR_ERROR)
+		EndIf
 	EndIf
 	
-	If WaitforPixel(18, 376, 20, 378, "C55115", 20, 1) Then 
-		SetDebugLog("checkChatTabPixel: Found ChatTabPixel", $COLOR_SUCCESS)
-		Return True
-	Else
-		SetDebugLog("ChatTabPixel not found", $COLOR_ERROR)
-	EndIf
-	Return False
+	Return $bRet
 EndFunc   ;==>checkChatTabPixel
 
 Func isOnMainVillage()
@@ -129,4 +138,14 @@ Func isOnMainVillage()
 	Local $bLocated = False
 	$bLocated = _checkMainScreenImage($aPixelToCheck)
 	Return $bLocated
+EndFunc
+
+Func NotifBarDropDownBS5()
+	If $g_sAndroidEmulator = "Bluestacks5" Then
+		If _CheckPixel($aNotifBarBS5_a, True) And _CheckPixel($aNotifBarBS5_b, True) And _CheckPixel($aNotifBarBS5_c, True) Then
+			SetLog("Found NotifBar Dropdown, Closing!", $COLOR_INFO)
+			Click(777, 34)
+			Return
+		EndIf
+	EndIf
 EndFunc

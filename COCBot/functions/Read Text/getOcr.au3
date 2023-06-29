@@ -79,13 +79,13 @@ Func getResourcesBonusPerc($x_start, $y_start) ; -> Gets complete value of Bonus
 	Return getOcrAndCapture("coc-bonus", $x_start, $y_start, 48, 16, True)
 EndFunc   ;==>getResourcesBonusPerc
 
-Func getLabCost($x_start, $y_start)
-	Return getOcrAndCapture("coc-labcost", $x_start, $y_start, 100, 16, True)
+Func getLabCost($x_start, $y_start) ;normal lab
+	Return getOcrAndCapture("coc-labcost", $x_start, $y_start, 100, 18, True)
 EndFunc 
 
-Func getStarLabUpgrdResourceRed($x_start, $y_start) ; -> Gets complete value of Elixir on the troop buttons,  xxx,xxx for "starlaboratory.au3" when red text
-	Return getOcrAndCapture("coc-starlab-r", $x_start, $y_start, 70, 14, True)
-EndFunc   ;==>getLabUpgrdResourceRed
+Func getSLabCost($x_start, $y_start) ;builderbase lab
+	Return getOcrAndCapture("coc-slabcost", $x_start, $y_start, 100, 18, True)
+EndFunc 
 
 Func getBldgUpgradeTime($x_start, $y_start) ; -> Gets complete remain building upgrade time
 	Return getOcrAndCapture("coc-uptime", $x_start, $y_start, 72, 18) ; Was 42. 72 tested as enough : "12d 19h" now
@@ -150,6 +150,10 @@ EndFunc   ;==>getOcrSpaceCastleDonate
 Func getOcrOverAllDamage($x_start, $y_start) ;  -> Get the Overall Damage %
 	Return getOcrAndCapture("coc-overalldamage", $x_start, $y_start, 50, 20, True)
 EndFunc   ;==>getOcrOverAllDamage
+
+Func getOcrBBDamageReport($x_start, $y_start) ;  -> Get Damage % on AttackReportBB
+	Return getOcrAndCapture("coc-bbreportdamage", $x_start, $y_start, 135, 50, True)
+EndFunc   ;==>getOcrBBDamageReport
 
 Func getOcrGuardShield($x_start, $y_start) ;  -> Get the guard/shield time left, middle top of the screen
 	Return getOcrAndCapture("coc-guardshield", $x_start, $y_start, 68, 15)
